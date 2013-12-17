@@ -1,0 +1,22 @@
+git checkout v3.0 -b quote
+patch -p1 < ~/Desktop/CS35L/lab4/gitroot/diffutils/quote-3.0-patch.txt
+vim ChangeLog-2008
+#compose a changelog to describe the changes the patch implements
+git add src/*.c
+git commit -m 'Change grave accents to apostrophes for string constants'
+git format-patch -1 --stdout > formatted-patch.txt
+cp formatted-patch.txt ~/Desktop/CS35L/lab4
+git checkout v3.0 -b tmp
+git am ~/Desktop/CS35L/lab4/formatted-patch.txt
+export PATH=$PATH:u/cs/ugrad/minhuyen/diffutils/man
+export PATH=$PATH:u/cs/ugrad/minhuyen/gperf-3.0.4/src
+export PATH=$PATH:/usr/local/cs/bin
+
+#Build and run tests to make sure the modified version of Diffutils is
+#successful, get rid of g++ functions in .profile file in home directory!!!
+./bootstrap
+./configure
+make
+make check
+make distdir
+diffutils*/ChangeLog

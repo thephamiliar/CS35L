@@ -1,0 +1,112 @@
+#Retrieve the necessary files from the bin
+export PATH=$PATH:/usr/local/cs/bin
+
+#Set up the directories and get a copy of the Diffutils repository from the
+#main Savannah repository
+mkdir gitroot
+cd gitroot
+git init
+git clone git://git.savannah.gnu.org/diffutils.git
+cd diffutils
+
+#Get the log of changes and generate a list of tags
+git log > git-log.txt
+git tag > git-tags.txt
+
+#Find the specified commit that changes ` to '
+vim git-log.txt
+/maint: quote
+#Commit # in interest: 62ca21c8c1a5aa3488589dcb191a4ef04ae9ed4f 
+
+#Make a patch with the specific commit and apply it to version 3.0 of
+#Diffutils
+git show 62ca21c8c1a5aa3488589dcb191a4ef04ae9ed4f > quote-patch.txt
+vim quote-patch.txt
+vim git-tags.txt
+git checkout v3.0
+patch -p1 < quote-patch.txt
+RETURN
+Y(X3)
+#Hunk failed to patch src/diff.c, README, README-hacking, cfg.mk
+
+#Revert back all the files except for .c files
+git status
+git checkout -- NEWS README TODO doc/diagmeet.note ms/config.bat ms/config.site
+po/en.po src/system.h tests/help-version src/diff.h
+
+#Revert back all changes to .c files other than changes to character string
+#constants by looking at the diff and changing back changes in the comments
+#other than the character string constants ('%s')
+git diff src/*.c 
+src/analyze.c //`realindexes'	`compareseq'	of `struct changes'
+src/cmp.c //`g'	`file_desc[0]'	`buffer[0]' `buffer[1]'	`read0'	`read1'
+src/context.c //`link'  `struct change'  `ignore'  `function_regexp'
+src/diff.c //`g'  `regexps'(3) `patch'(2)
+src/diff3.c //`g'   `:wq'   `output_diff3'   
+src/dir.c //`data'   `names'  `data'   `-S name'   
+src/ifdef.c //`%(n=1?thenpart:elsepart)'
+src/io.c //`equivs'(2)
+src/sdiff.c //`g'  `sigaction' `signal'  `-Wall'
+src/side.c //``xxx  | xxx ''  ``   > xxx''   ``xxx < ''
+src/util.c //`struct msg', `message', `pr'(3), `stdout', `pr', `struct change'
+
+#Check that only 6 files are modified
+git status
+#cmp, diff, diff3, dir, sdiff, util
+
+#Copy rejected patched over to .c as needed
+git status
+vim src/diff.c.rej  'pr', 'ifdef NAME', 'old', 'new', 'unchanged', 'changed'
+			'FILE1'   '-'
+vim src/diff3.c.rej  'w'   'q'
+
+#Remove all untracked files
+git status
+git clean -f
+
+#Make the patch for the version 3.0 of Diffutils
+git status
+git diff > quote-3.0-patch.txt
+
+#Fix the bug in bootstrap and gperf, must make another diffutils directory out
+#of the gitroot directory
+export PATH=$PATH:u/cs/ugrad/minhuyen/diffutils/man
+cd
+wget http://ftp.gnu.org/pub/gnu/gperf/gperf-3.0.4.tar.gz
+tar -xzvf gperf-3.0.4.tar.gz
+cd gperf-3.0.4
+./configure
+make
+cd gitroot/diffutils
+export PATH=$PATH:u/cs/ugrad/minhuyen/gperf-3.0.4/src
+export PATH=$PATH:/usr/local/cs/bin
+
+#Build and run tests to make sure the modified version of Diffutils is
+#successful, get rid of g++ functions in .profile file in home directory!!!
+./bootstrap
+./configure
+make
+make check
+src/diff . - #should output "diff: cannot compare '-' to a directory"
+src/diff --help #should not have grave marks
+
+#Sanity test to compare the source code of version 3.0 and the modified
+#version
+cd src
+mkdir diffutils-3.0-patch
+cp *.c diffutils-3.0-patch
+mv diffutils-3.0-patch ~/Desktop/CS35L/lab4
+cp diff ~/Desktop/CS35L/lab4
+cd ..
+git checkout v3.0
+cd src
+mkdir diffutils-3.0
+cp *.c diffutils-3.0
+mv diffutils-3.0 ~/Desktop/CS35L/lab4
+cd Desktop/CS35L/lab4
+./diff -pru diffutils-3.0 diffutils-3.0-patch > quote-3.0-test.txt
+cp quote-3.0-test.txt ~/Desktop/CS35L/lab4/gitroot/diffutils
+diff quote-3.0-test.txt quote-3.0-patch.txt > diff.txt
+
+#The files are not identical, the differences are innocuous because most of
+#the differences are in the path names
