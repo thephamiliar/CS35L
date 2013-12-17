@@ -1,0 +1,40 @@
+#time command
+time ./(program) < testFile.txt
+SROT13
+1000 lines		real 0m0.006s
+			user 0m0.000s
+			sys  0m0.003s
+10000 lines		real 0m0.023s
+			user 0m0.013s
+			sys  0m0.007s
+
+SROT13U
+1000 lines		real 0m0.007s
+			user 0m0.002s
+			sys  0m0.003s
+10000 lines		real 0m0.180s
+			user 0m0.005s
+			sys  0m0.039s
+
+From the test cases, it seems that the original srot13 program performs faster
+than the srot13 program that utilizes system calls. This supports the lab
+results, as the original srot13 program utilized the getchar and putchar
+functions rather than the read and write system calls. The differences in
+performance become more apparent as the file has more lines.
+
+#estimate number of comparisons
+I used varying lines of input, and received the following number of
+comparisons:
+
+Number of Lines			Number of comparisons
+100				499
+200				1188
+300				1953
+400				2756
+800				6272
+1000				8276
+
+The number of comparisons can be estimated to be around 2.4x^1.17. I used a
+regression test and got the regressions coefficient to be around 0.99975,
+meaning that about 0.99975 comparisons can be predicted with the number of
+lines. This formula only applies to large files, however. 

@@ -1,0 +1,124 @@
+#catb.c
+The catb program utilizes the getchar() and putchar() functions to copy bytes
+from the standard input into the standard output. To use these functions, you
+must include the stdio.h header, in which they are declared and implemented. You
+must also include stdlib.h so that the main function can exit. The
+implementation of catb is simple. You have to declare a char variable that will
+store and write each byte one by one. So, while the char variable does not equal
+to the end of file character, the program will write the byte to the standard
+output.
+
+#catu.c
+The catu program uses the read and write system calls to perform the same tasks
+as the previous catb program. The system calls require that you include the
+fcntl.h header file, and like before the stdlib.h file is included to exit the
+main function. The read and write system calls take in three argurments (input
+file, buffer array, number bytes to copy/write). In this case, we create a
+character array of size one, since we want to read the file one byte at a time.
+Then, while the read system call reads each byte (returns 0 when reach end of
+file) from standard input (0), the catu program will write the data stored in
+the character array to standard output (1).
+
+#strace command
+First, we need to make a file of 5,000,000 bytes.
+
+dd if=/dev/urandom of=test.txt bs=5000000 count=1
+
+Then we use the strace command to see how much time each program takes and
+compare the time elapsed for each.
+
+(a) Copying one file to another: strace -c ./(program) < test.txt > test2.txt
+CATB.C:
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 100.0    0.000013           0         2           read
+  0.00    0.000000           0         2           write
+  0.00    0.000000           0         1         4 open
+  0.00    0.000000           0         6           close
+  0.00    0.000000           0         2         3 stat
+  0.00    0.000000           0         4           fstat
+  0.00    0.000000           0        10           mmap
+  0.00    0.000000           0         3           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1           brk
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000013                    37         8 total
+
+CATU.C
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 55.58    0.306578           0   5000000           read
+ 44.42    0.245026           0   5000002           write
+  0.00    0.000000           0         6         4 open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         4         3 stat
+  0.00    0.000000           0         2           fstat
+  0.00    0.000000           0         8           mmap
+  0.00    0.000000           0         3           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1           brk
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.551604              10000032         8 total
+
+(b) Copying a file to your terminal: strace -c ./(program) < test.txt
+CATB.C
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000055          28         2           read
+  0.00    0.000000           0         4           write
+  0.00    0.000000           0         6         4 open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         4         3 stat
+  0.00    0.000000           0         4           fstat
+  0.00    0.000000           0        10           mmap
+  0.00    0.000000           0         3           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1           brk
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000055                    40         8 total
+
+CATU.C
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 54.99    0.387720           0   5000000           read
+ 45.01    0.317355           0   5000002           write
+  0.00    0.000000           0         6         4 open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         4         3 stat
+  0.00    0.000000           0         2           fstat
+  0.00    0.000000           0         8           mmap
+  0.00    0.000000           0         3           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1           brk
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.705075              10000032         8 total
+
+In both cases, the catb program outperforms the catu program. The catu program
+utilizes many system calls, whereas the catb program only uses about 40 system
+calls. The catu program uses a system call for each byte, taking up more time.
+This difference in time is apparent in large files, as seen in the test case.
+The time command tests justify this time discrepancy as well.
+
+#time command
+time ./(program) < test.txt > test1.txt
+When comparing the time used to copy the same amount of data for both programs,
+the catb program was relatively faster than the catu program. For my test case,
+the catb program took a total of 0.004 seconds, whereas the catu program took a
+total of 4.769 seconds. The majority of the time spent in the catu program was
+in the sys call, which is due to the fact that each byte is read/written by the
+kernel through the read() and write() system call. While the catb program
+utilizes buffered I/O, which decreases the number of system calls by reading
+more than a byte at a time into a buffer and then using a system call on the
+whole buffer.
