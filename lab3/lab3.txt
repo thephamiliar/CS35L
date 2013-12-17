@@ -1,0 +1,52 @@
+To retrieve Coureutils, we use the wget command to download the file and tar to
+unzip the files
+
+wget http://ftp.gnu.org/gnu/coreutils/coreutils-7.6.tar.gz
+tar -xzcf coreutils-7.6.tar.gz
+
+Make a temporary directory to install Coreutils, so that it does not override
+the default settings of Linux
+
+mkdir ~/coreutilsInstall
+cd coreutils-7.6
+
+Read the INSTALL file of Coreutils to find the necessary prefix tag to install
+Coreutils directly into the temporary directory; steps to install Coreutils:
+1. configure 2. make 3. make install
+
+vim INSTALL
+./configure --prefix=/coreutilsInstall
+make
+make install prefix=~/coreutilsInstall
+cd..
+
+Check that the files were installed into the temporary directory and reproduce
+the bug
+
+cd coreutilsInstall
+cd bin
+./ls -l
+cd ..
+cd coreutils-7.6
+cd src
+./ls -l
+cd ..
+cd ..
+
+Copy the patch and apply it to the Coreutils directory
+
+vim patch_file
+cd coreutils-7.6
+vim patch_file
+
+Make sure the patch_file is executable
+
+chmod +x patch_file
+patch -p1 < patch_file
+
+Remake/update the newly patched files
+make
+cd src
+
+Check to see if the bug has been resolved
+./ls -l

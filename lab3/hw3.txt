@@ -1,0 +1,20 @@
+1. Yes, it was necessary because now the ls command will not default to the ISO
+format when a format is not specified. By deleting this case, the ls command
+will print out the traditional Unix format by default.
+
+2. If the patched version were to be used, some bugs that one should take into
+account is that the ISO format has been the default format. So, by changing the
+default format, it may caugse bugs in scripts parsing ls output. Also, the date
+format seems to be associated with the country rather than the language, so in
+non-English speaking countries, the format translation may not be available.  
+
+3. In Python, the Index Error message comes up because in the random script, the
+IndexError is raised if the sequence is empty there is nothing in the sequence
+to return. 
+
+4. For Python3, the syntax error comes up because the except syntax does not
+allow the syntax "except IOError as (errno, strerror):". After changing the
+clause after "as," two errors came up when you build the program with an empty
+file: ValueError and IndexError. Both these errors occur in the random script
+because the functions cannot handle cases where the number of bits is zero or
+when the sequence is empty.
