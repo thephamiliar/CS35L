@@ -1,0 +1,19 @@
+1. If the other teams had been observing all the bytes going across the network,
+the resulting network would still be secure since openssh establishes a secure
+network using encryption and decryption between server and client. With openssh,
+all the data being passed between the client and server would be encrypted and
+would be unknown to the other.  (1) The network would no longer be secure if the
+other team had also tapped my keyboards and had observed all of my team's
+keystrokes, since they could trace the password back and create their own
+connection with the server. (2) The network would not be secure if the other
+team had physical control of the USB I am booting off of since they would have
+direct access to the server and can bypass the password lock, avoiding having to
+decrypt a file even if it is encrypted.
+
+2. The verify command merely checks whether the name, key, and comment match the
+one that created the file. It does not check whether the person trying to access
+the file is the creator of the file.  In order to verify that I personally
+created the tar file in question, I would asymmetically encrypt the file. As a
+result, since the true owner would be the only one who can decrypt the file with
+the private key, I would be able to validate that the file was created by
+myself.

@@ -1,0 +1,38 @@
+#Install the openssh-server and openssh-client onto Ubuntu
+dpkg --get-selections | grep openssh
+#output: openssh-client install
+sudo apt-get update
+sudo apt-get install openssh-server
+dpkg --get-selections | grep openssh
+#output: openssh-client install
+	 openssh-server install
+
+#Generate key pairs
+ssh-keygen
+#Save to default folder
+#Enter passphrase <passphrase>
+
+#Create an account for the client
+sudo useradd -d /home/grace -m gracechin
+sudo passwd gracechin
+#Enter a password <hello>
+
+#Create .ssh directory for new user
+cd /home/grace
+sudo mkdir .ssh
+
+#Change ownership and permission on .ssh directory
+sudo chown -R gracechin .ssh
+sudo chmod 700 .ssh
+
+#Log onto server as client
+#IP: 10.97.85.117
+ssh-copy-id -i user1@10.97.85.117
+<Enter password for user1: hello>
+ssh-add
+<Enter passphrase: passphrase>
+
+ssh user1@10.97.85.117
+#Can't run xterm
+ssh -X user1@10.97.85.117
+#Can run xterm
