@@ -1,0 +1,65 @@
+#Download Coreutils with bug from website and untar the file
+tar -zxvf coreutils-with-bug.tar.gz
+cd coreutils-with-bug
+./configure
+make
+#In the utimecmp.c and utimens.h files, there are conflicting types for
+#'futimens' in these files and in the stat.h file. The patch resolves this
+#by changing files that use the futimens fuction and make have them return the
+#same type
+
+#Download patch, copy it into the Coreutils directory, and rebuild with the
+#patch
+curl http://www.cs.ucla.edu/classes/fall13/cs35L/assign/coreutils.diff >
+renamePatch.txt
+cp renamePatch.txt ~/Desktop/CS35L/lab5/coreutils-with-bug/patch_file.txt
+cd coreutils-with-bug
+patch < patch_file.txt
+make
+
+#Check for the bug in a temp directory
+tmp=$(mktemp -d)
+cd $tmp
+touch -d '1918-11-11 11:00 GMT' wwi-armistice
+touch now
+sleep 1
+touch now1 
+src/ls -lt --full-time wwi-armistice now now1
+
+#Output for the bug: prints from newest to oldest
+-rw-r--r-- 1 minhuyen csugrad 0 1918-11-11 03:00 wwi-armistice
+-rw-r--r-- 1 minhuyen csugrad 0 2013-10-29 18:16 now1
+-rw-r--r-- 1 minhuyen csugrad 0 2013-10-29 18:16 now
+
+#Debug with gdb
+cd src
+gdb ls
+b main
+b sort_files
+b compare_mtime
+b cmp_mtime
+#When you step into compare_mtime, you reroute to:
+lib/timespec.h
+timespec_cmp
+#The problem is that there is an unsigned overflow in timespec_cmp. When you
+#subtract and get a large positve unsigned difference, it becomes negative when
+#you cast it to a signed integer. To fix this, I type-casted the tv_sec to
+#time_t data types and the ntv_sec to long data types and returned the
+#appropriate values associated with each comparison.
+
+#While in gdb, to check if output is correct
+run -lt wwi-armistice now now1
+#The corrected output: prints newest to oldest
+-rw-r--r-- 1 minhuyen csugrad 0 2013-10-29 18:16 now1
+-rw-r--r-- 1 minhuyen csugrad 0 2013-10-29 18:16 now
+-rw-r--r-- 1 minhuyen csugrad 0 2054-12-17 09:28 wwi-armistice
+
+#Make a patch file of Coreutils fixes
+#diff -u old_timespec.h new_timespec.h > lab5.diff
+diff -u ~/Desktop/CS35L/lab5/coreutils-with-bug/lib/timespec.h timespec.h > lab5.diff
+
+#Output on the home directory
+-rw-r--r-- 1 minhuyen csugrad 0 2054-12-17 17:28 wwi-armistice
+-rw-r--r-- 1 minhuyen csugrad 0 2013-10-29 23:32 now1
+-rw-r--r-- 1 minhuyen csugrad 0 2013-10-29 23:32 now
+#The SEASnet servers also produces the bug that we had just resolved
