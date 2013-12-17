@@ -1,0 +1,43 @@
+1. Make sure your path has the necessary files (/usr/local/cs/bin/sort).
+echo $PATH
+export PATH=/usr/local/cs/bin:$PATH
+
+2. Generate a file contatining 200,000 random floating point numbers, one per
+line with no white spaces.
+od -An -f -N 800000 < /dev/urandom > random1.txt
+tr -s ' ''\n' < random1.txt > random.txt
+vim random.txt (delete extra line)
+
+3. Use "time -p" to time the command "sort -g" and send the output to
+/dev/null
+time -p sort -g random.txt > /dev/null
+real 1.40
+user 1.37
+sys 0.00
+
+4. Now invoke sort with the "--parallel" option and time sort using 1,2,4, and
+8 threads.
+time -p sort -g --parallel=1 random.txt > /dev/null
+real 1.42
+user 1.41
+sys 0.00
+
+time -p sort -g --parallel=2 random.txt > /dev/null
+real 0.81
+user 1.50
+sys 0.00
+
+time -p sort -g --parallel=4 random.txt > /dev/null
+real 0.80
+user 1.49
+sys 0.00
+
+time -p sort -g --parallel=8 random.txt > /dev/null
+real 0.80
+user 1.49
+sys 0.00
+
+When parallelization is utilized, there is a noticeable change. However, this
+increase in speed is only seen when two threads are initialized. Once there
+are more than two threads, there is no significant time difference, implying
+that more multithreading does not necessarily make the process faster.
