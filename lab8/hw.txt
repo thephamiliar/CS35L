@@ -1,0 +1,22 @@
+###### MOST DANGEROUS ######
+1. VU #945216 The most dangerous vulnerability would be the remote integer overflow because the
+attacker can execute code with the privileges of the SSH daemon. The attacker would have the
+privileges of the root user and the only current way to prevent this is to apply the available
+patches or to disable support for SSH1 until a more permanent solution is found.
+2. VU #774103 The next most urgent vulnerability would be the array out-of-bound access privilege
+escalation vulnerability because it allows the attacker to bypass privileges and gain access to
+resources that are normally protected to unauthenticated users. In this way, the attacker can
+make unauthorized actions. This can be resolved with an update by the corresponding affected
+distribution.
+3. VU #237655 This vulnerability consists of a use-after-free vulnerability in the CGenericElement
+object. The impact of this vulnerability is that an attacker can execute code as if they are the
+user. In this way, the attacker can create a website that exploits this vulnerability and have the
+user view their website. This is less dangerous than the previous ones because this only applies to
+the Internet Explorer application, whereas the other two can exploit the server as a whole.
+4. VU #127108 The buffer overflow vulnerability can crash the application. There are no practical
+solutions to this problem, but this does not have as wide as an impact as the previous
+vulnerabilities since it doesn't exploit the server.
+5. VU #912420 The least dangerous vulnerability is the IBM Notes one because it can be resolved with
+an upgrade and only triggers an HTTP request, rather than making the user to a website like the
+vulnerability #237655.
+###### LEAST DANGEROUS ######

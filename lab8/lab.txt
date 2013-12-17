@@ -1,0 +1,176 @@
+﻿1. First, download the sthttpd 2.26.4 tar file from the assignment page. Then
+untar the file and apply the patch. To apply the patch, copy the diff file from
+the website and place the patch text file in ~/.../sthttpd-2.26.4/src. Once the
+patch has succeeded, configure and build sthttpd. Now we have to run the
+modified thttpd daemon on port 8080. The thttpd has built into the src
+directory, so change diretories, and run the following commands to observe the
+behavior for a normal case.
+
+$ tar xvf sthttpd-2.26.4.tar.gz
+$ cd sthttpd-2.26.4/src
+$ patch < patch_file
+$ cd ..
+$ ./configure
+$ make
+$ cd src
+$ ./thttpd -p 8080
+$ wget http://localhost:8080
+
+SUCCESSFUL OUTPUT
+--2013-11-19 16:23:34--  http://localhost:8080/
+Resolving localhost... 127.0.0.1
+Connecting to localhost|127.0.0.1|:8080... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2526 (2.5K) [text/html]
+Saving to: âdex.html.5â100%[======================================>] 2,526
+--.-K/s   in 0s
+
+2013-11-19 16:23:34 (320 MB/s) - âdex.html.5â
+
+
+2. Now use a port that was assigned to your section and observe the normal case
+of this port.
+
+$ ./thttpd -p 12321
+$ wget http://localhost:12400
+
+OUTPUT IN THE NORMAL CASE
+--2013-11-19 16:33:53--  http://localhost:12321/
+Resolving localhost... 127.0.0.1
+Connecting to localhost|127.0.0.1|:12321... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2763 (2.7K) [text/html]
+Saving to:
+âdex.html.6â100%[========================================================>]
+2,763       --.-K/s   in 0s
+
+2013-11-19 16:33:53 (356 MB/s) - âdex.html.6âOA
+
+
+3. Make the server crash by sending the web server a suitably-formatted request.  The crash will
+occur due to a buffer overrun, so make sure that your crash request is enough to fill the buffer and
+corrupt the return address. Keep in mind that once you crash the web server, you need to kill the
+process using the pid.
+
+wget http://localhost:12400/AAAAA
+
+--2013-11-20 15:14:41--
+http://localhost:12400/AAAAAAA
+Resolving localhost... 127.0.0.1
+Connecting to localhost|127.0.0.1|:12400... connected.
+HTTP request sent, awaiting response... Read error (Connection reset by peer)
+in headers.
+Retrying.
+
+--2013-11-20 15:14:42--  (try: 2)
+http://localhost:12400/AAAAA
+Connecting to localhost|127.0.0.1|:12400... failed: Connection refused.
+Resolving localhost... 127.0.0.1
+Connecting to localhost|127.0.0.1|:12400... failed: Connection refused.
+
+
+4. After crashing the server, you need to run the web server under GDB to traceback to the point
+after the crash. In order to do this, first find the process ID for thttpd for your port. My pid was
+28687. Now you need to run gdb and have backtrace the process after the crash. Send the crashing
+request from another terminal and analyze the process on gdb. You should get a segmentation fault,
+and from there, get the backtrace to find that the crash occurs in realloc().
+
+$ ps aux | grep thttpd
+  minhuyen 28687  0.0  0.0  15908  1452 ?        Ss   15:47   0:00 ./thttpd -p 12400
+$ gdb
+(gdb) attach 28687
+(on another terminal) $wget http://localhost:12400/AAAAAAAAA....AAAAAAAA
+(gdb) c
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000342b479d9d in _int_malloc () from /lib64/libc.so.6
+
+(gdb) bt
+n _int_malloc () from /lib64/libc.so.6
+#1  0x0000003ff627b9ca in _int_realloc () from /lib64/libc.so.6
+#2  0x0000003ff627bce5 in realloc () from /lib64/libc.so.6
+#3  0x0000000000406428 in httpd_realloc_str (strP=0x190db70,
+    maxsizeP=0x190dc08, size=<value optimized out>) at libhttpd.c:715
+#4  0x000000000040b6e5 in httpd_parse_request (hc=0x190da80) at
+libhttpd.c:2271
+#5  0x00000000004047e2 in handle_read (argc=<value optimized out>,
+    argv=<value optimized out>) at thttpd.c:1639
+#6  main (argc=<value optimized out>, argv=<value optimized out>)
+    at thttpd.c:802
+
+
+5. To exploit the code, I would make the string long enough to fill the buffer and overwrite the
+return address of the stack. I would have the return address point to my code, running my arbitrary
+code on the web server, and once it has executed my code, I would return to the original return
+address and continue the program as if it were in the normal case.
+
+
+6. Make sure /usr/local/cs/bin is in your path. If it is not in your path, export the path. Then run
+the following commands below to create the assembly code with and without the stack protector. When
+you compare the two files, it seems that the no stack protector runs more efficiently than the code
+with the stack protector because the stack protector invokes more calls in order to check that the
+stack has not been corrupted. Then use the following shell command to see that the stack_chk_fail
+function is called when the stack protector is invoked but is not called when you do not use the
+stack protector.
+
+$ echo $PATH
+$ export PATH=/usr/local/cs/bin:$PATH
+$ gcc -m32 -c -S -o thttpd-nostackprot.s -fno-stack-protector -I . -I ../ thttpd.c
+$ gcc -m32 -c -S -o thttpd-stackprot.s -fstack-protector -I . -I ../ thttpd.c
+$ diff thttpd-nostackprot.s thttpd-stackprot.s > diff.txt
+$ diff thttpd-nostackprot.s thttpd-stackprot.s | grep call
+
+
+7. Now run the web server under valgrind. Valgrind checks if there are any memory leaks and keeps
+track of the heap usage.
+
+$ valgrind ./thttpd -p 12321
+==14757== Memcheck, a memory error detector
+==14757== Copyright (C) 2002-2012, and GNU GPL'd, by Julian Seward et al.
+==14757== Using Valgrind-3.8.1 and LibVEX; rerun with -h for copyright info
+==14757== Command: ./thttpd -p 12321
+==14757==
+==14757==
+==14757== HEAP SUMMARY:
+==14757==     in use at exit: 0 bytes in 0 blocks
+==14757==   total heap usage: 12 allocs, 12 frees, 3,318 bytes allocated
+==14757==
+==14757== All heap blocks were freed -- no leaks are possible
+==14757==
+==14757== For counts of detected and suppressed errors, rerun with: -v
+==14757== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 6 from 6)
+
+
+8. There is another method to catch errors, using GCC's sanitize option. Use this option and, like
+before, use gdb to see the traceback after the crash.
+
+$ make CC="gcc -m32" CFLAGS="-fsanitize=address -fstackprotector" \ 
+	LDFLAGS="-Xlinker --rpath=/usr/local/cs/gcc-$(gcc -dumpversion)/lib"
+####### REFER TO #4 #########
+(gdb) bt
+Program received signal SIGSEGV, Segmentation fault.
+0x000000342b479d9d in _int_malloc () from /lib64/libc.so.6
+(gdb) bt
+#0  0x000000342b479d9d in _int_malloc () from /lib64/libc.so.6
+#1  0x000000342b47a5e6 in calloc () from /lib64/libc.so.6
+#2  0x000000342b46f1ed in open_memstream () from /lib64/libc.so.6
+#3  0x000000342b4e4bdb in __vsyslog_chk () from /lib64/libc.so.6
+#4  0x000000342b47074e in __libc_message () from /lib64/libc.so.6
+#5  0x000000342b476126 in malloc_printerr () from /lib64/libc.so.6
+#6  0x000000342b47bb27 in _int_realloc () from /lib64/libc.so.6
+#7  0x000000342b47bce5 in realloc () from /lib64/libc.so.6
+#8  0x0000000000406428 in httpd_realloc_str (strP=0x15b9b10,
+    maxsizeP=0x15b9b18, size=<value optimized out>) at libhttpd.c:715
+#9  0x0000000000404777 in handle_read (argc=<value optimized out>,
+    argv=<value optimized out>) at thttpd.c:1596
+#10 main (argc=<value optimized out>, argv=<value optimized out>)
+    at thttpd.c:802
+
+
+9. Then obtain the assembly code using the sanitize option and compare it the the assembly code of
+the stack protector. From the diff file, it seems that the sanitize option is less efficient because
+it calls the asan_report_load and asan_report_store function many times throughout the run.
+
+$ gcc -m32 -c -S -o thttpd-sanitize.s -fsanitize=address -fstack-protector -I . -I .// thttpd.c
+$ diff thttpd-sanitize.s thttpd-stackprot.s > diff.txt diff
